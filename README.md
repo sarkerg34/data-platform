@@ -36,8 +36,58 @@ terraform init
 terraform plan
 ```
 
-`terraform apply` is gated behind milestone GOU-10. Running `init` requires Application Default Credentials:
+Running `init` requires Application Default Credentials:
 
 ```sh
 gcloud auth application-default login
 ```
+
+Dev infrastructure has been applied (M0). Prod is provisioned in code but not yet applied.
+
+## Local development
+
+Application code (dlt, Dagster, etc.) runs as the pipeline writer service account via **impersonation** — no JSON key files on disk. Secrets (e.g. the GitHub PAT) live only in Secret Manager and are fetched at runtime.
+
+### Setup
+
+```sh
+cp .env.example .env       # then edit .env if your impersonation principal differs
+```
+
+Source the env however you prefer (`source .env`, `direnv allow`, your IDE's env loader, etc.). The committed `.env.example` documents every required variable; `.env` itself is gitignored.
+
+### How secrets are read
+
+`.env` only contains the secret's *resource path*, not its value. Application code resolves it at runtime:
+
+```python
+import os
+from google.cloud import secretmanager
+
+client = secretmanager.SecretManagerServiceClient()
+response = client.access_secret_version(name=os.environ["GITHUB_PAT_SECRET"])
+github_pat = response.payload.data.decode()
+```
+
+This works identically in three environments:
+
+| Environment | Authentication path |
+|---|---|
+| Local dev | ADC base identity → impersonates writer SA → reads Secret Manager |
+| GitHub Actions CI | OIDC token → impersonates writer SA → reads Secret Manager |
+| Cloud Run (M7+) | Workload Identity → runs as writer SA directly → reads Secret Manager |
+
+No code branches per environment; the `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` env var only differs locally vs prod.
+
+### Rotating the GitHub PAT
+
+```sh
+echo -n "ghp_NEW_PAT_VALUE" | gcloud secrets versions add github-pat-dev \
+    --data-file=- --project=data-engineering-494500
+
+# Disable the old version (or `destroy` to make it unrecoverable)
+gcloud secrets versions disable <old-version-number> \
+    --secret=github-pat-dev --project=data-engineering-494500
+```
+
+Application code reads `versions/latest` and picks up the new value automatically.

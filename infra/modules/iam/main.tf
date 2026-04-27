@@ -30,3 +30,19 @@ resource "google_storage_bucket_iam_member" "reader" {
   role   = "roles/storage.objectViewer"
   member = "serviceAccount:${google_service_account.reader.email}"
 }
+
+resource "google_service_account_iam_member" "writer_impersonator" {
+  for_each = toset(var.impersonators)
+
+  service_account_id = google_service_account.writer.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = each.key
+}
+
+resource "google_service_account_iam_member" "reader_impersonator" {
+  for_each = toset(var.impersonators)
+
+  service_account_id = google_service_account.reader.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = each.key
+}

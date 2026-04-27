@@ -17,3 +17,9 @@ variable "bucket_names" {
     error_message = "bucket_names must contain at least one bucket."
   }
 }
+
+variable "impersonators" {
+  description = "Principals granted roles/iam.serviceAccountTokenCreator on both SAs, allowing them to impersonate writer/reader for local dev. Format: \"user:<email>\", \"group:<email>\", or \"serviceAccount:<email>\"."
+  type        = list(string)
+  default     = []
+}
