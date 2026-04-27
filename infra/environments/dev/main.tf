@@ -32,10 +32,25 @@ module "gcs_data" {
   }
 }
 
+module "iam" {
+  source = "../../modules/iam"
+
+  env          = "dev"
+  bucket_names = [module.gcs_data.name]
+}
+
 output "data_bucket" {
   description = "Dev data bucket (name + URL)."
   value = {
     name = module.gcs_data.name
     url  = module.gcs_data.url
+  }
+}
+
+output "service_accounts" {
+  description = "Dev service account emails."
+  value = {
+    writer = module.iam.writer_email
+    reader = module.iam.reader_email
   }
 }
