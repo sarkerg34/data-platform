@@ -3,6 +3,10 @@
 *.tfstate
 *.tfstate.*
 *.tfplan
+# Rendered plan/output exports (terraform show -json, terraform output -json)
+*.plan.json
+*.plan.txt
+*.outputs.json
 crash.log
 crash.*.log
 override.tf
