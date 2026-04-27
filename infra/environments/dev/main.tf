@@ -39,6 +39,14 @@ module "iam" {
   bucket_names = [module.gcs_data.name]
 }
 
+module "secrets" {
+  source = "../../modules/secrets"
+
+  env          = "dev"
+  secret_names = ["github-pat"]
+  accessors    = ["serviceAccount:${module.iam.writer_email}"]
+}
+
 output "data_bucket" {
   description = "Dev data bucket (name + URL)."
   value = {
@@ -53,4 +61,9 @@ output "service_accounts" {
     writer = module.iam.writer_email
     reader = module.iam.reader_email
   }
+}
+
+output "secrets" {
+  description = "Dev Secret Manager secret IDs."
+  value       = module.secrets.secret_ids
 }
