@@ -35,8 +35,9 @@ module "gcs_data" {
 module "iam" {
   source = "../../modules/iam"
 
-  env          = "dev"
-  bucket_names = [module.gcs_data.name]
+  env           = "dev"
+  bucket_names  = [module.gcs_data.name]
+  impersonators = ["user:gourab34@gmail.com"]
 }
 
 module "secrets" {
